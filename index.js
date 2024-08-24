@@ -26,6 +26,7 @@ app.get('/movies-images', async (req, res) => {
       executablePath,
       args: chromium.args,
       headless: false,
+      ignoreDefaultArgs: ['--disable-extensions']
     }) 
 
     const page = await browser.newPage();
