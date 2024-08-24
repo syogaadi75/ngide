@@ -1,11 +1,22 @@
-const express = require('express');
-const chromium = require('chrome-aws-lambda');
-const puppeteer = require('puppeteer-core')
-const lpuppeteer = require('puppeteer')
+const express = require('express'); 
+const chromium = require('@sparticuz/chromium-min');
+const puppeteer = require('puppeteer-core');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const LOCAL_CHROME_EXECUTABLE = lpuppeteer.executablePath()
+
+
+async function getBrowser() {
+    return puppeteer.launch({
+        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(
+            `https://github.com/Sparticuz/chromium/releases/download/v127.0.0/chromium-v127.0.0-pack.tar`
+        ),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+    });
+}
 
 app.get('/', (req, res) => {
   res.send('Hello World');
@@ -21,14 +32,7 @@ app.get('/movies-images', async (req, res) => {
 
   try {
     // Luncurkan browser dengan chrome-aws-lambda
-    const executablePath = await chromium.executablePath || LOCAL_CHROME_EXECUTABLE
-    const browser = await puppeteer.launch({
-      executablePath,
-      args: chromium.args,
-      headless: false,
-      ignoreDefaultArgs: ['--disable-extensions']
-    }) 
-
+    const browser = await getBrowser(); 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2' });
 
