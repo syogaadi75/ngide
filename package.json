@@ -1,0 +1,20 @@
+{
+  "name": "ngide2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chrome-aws-lambda": "^10.1.0",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4",
+    "puppeteer": "^10.1.0",
+    "puppeteer-core": "^10.1.0"
+  }
+}
