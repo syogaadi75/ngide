@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 })
 
 app.get('/movies', async (req, res) => {
-  const url = req.query.url
+  const url = 'https://rebahinxxi.skin/'
 
   if (!url) {
     return res.status(400).send('URL is required')
