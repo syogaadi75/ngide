@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
   res.send('Hello World')
 })
 
-app.get('/movies', async (req, res) => {
+app.get('/api/movies', async (req, res) => {
   const url = 'https://rebahinxxi.skin/'
 
   if (!url) {
@@ -61,7 +61,7 @@ app.get('/movies', async (req, res) => {
   }
 })
 
-app.get('/detail-movies', async (req, res) => {
+app.get('/api/detail-movie', async (req, res) => {
   const url = req.query.url
 
   if (!url) {
@@ -90,7 +90,7 @@ app.get('/detail-movies', async (req, res) => {
   }
 })
 
-app.get('/watch-movies', async (req, res) => {
+app.get('/api/watch-movie', async (req, res) => {
   const url = req.query.url
 
   if (!url) {
