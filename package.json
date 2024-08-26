@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@sparticuz/chromium-min": "^127.0.0",
+    "cors": "^2.8.5",
     "express": "^4.19.2",
     "js-base64": "^3.7.7",
     "nodemon": "^3.1.4",
