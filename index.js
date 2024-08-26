@@ -10,17 +10,10 @@ async function getBrowser() {
   return puppeteer.launch({
     args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
     defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v127.0.0/chromium-v127.0.0-pack.tar`),
-    headless: chromium.headless,
-    ignoreHTTPSErrors: true
-  })
-}
-
-async function getLocalBrowser() {
-  return puppeteer.launch({
-    args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-    defaultViewport: chromium.defaultViewport,
-    executablePath: path.resolve('C:/Program Files/Google/Chrome/Application/chrome.exe'),
+    executablePath:
+      process.env.NODE_ENV === 'production'
+        ? await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v127.0.0/chromium-v127.0.0-pack.tar`)
+        : path.resolve('C:/Program Files/Google/Chrome/Application/chrome.exe'),
     headless: chromium.headless,
     ignoreHTTPSErrors: true
   })
