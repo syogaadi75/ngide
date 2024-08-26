@@ -13,6 +13,7 @@
   "dependencies": {
     "@sparticuz/chromium-min": "^127.0.0",
     "express": "^4.19.2",
+    "js-base64": "^3.7.7",
     "nodemon": "^3.1.4",
     "puppeteer-core": "^23.1.1"
   }
