@@ -101,10 +101,12 @@ app.get('/api/detail-movie', async (req, res) => {
     const data = await page.evaluate(() => {
       const titleContainer = document.querySelector('h3[itemprop="name"]')
       const title = titleContainer ? titleContainer.getAttribute('content') : null
-      const thumbElement = document.querySelector('.thumb.mvic-thumb');
-      const style = window.getComputedStyle(thumbElement);
-      const backgroundImage = style.getPropertyValue('background-image');
-      const imgSrc = backgroundImage.slice(5, -2);
+      const thumbElement = document.querySelector('.thumb.mvic-thumb')
+      const style = window.getComputedStyle(thumbElement)
+      const backgroundImage = style.getPropertyValue('background-image')
+      const imgSrc = backgroundImage.slice(5, -2)
+
+      const trailer = document.querySelector('#iframe-trailer').getAttribute('src')
 
       const rating = {
         count: document.querySelector('span[itemprop="ratingCount"]').getAttribute('content'),
@@ -182,7 +184,7 @@ app.get('/api/detail-movie', async (req, res) => {
       const hrefContainer = document.querySelector('#mv-info a[title]')
       const href = hrefContainer ? hrefContainer.getAttribute('href') : null
 
-      return { title, imgSrc, href, rating, sinopsis, duration, qualities, release_date, countries, genres, actors, directors }
+      return { title, imgSrc, trailer, href, rating, sinopsis, duration, qualities, release_date, countries, genres, actors, directors }
     })
 
     await browser.close()
