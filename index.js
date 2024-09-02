@@ -3,11 +3,11 @@ const chromium = require('@sparticuz/chromium-min')
 const puppeteer = require('puppeteer-core')
 const path = require('path')
 const cors = require('cors')
-const bodyParser = require('body-parser');
+const bodyParser = require('body-parser')
 
 const app = express()
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
 const PORT = process.env.PORT || 4000
 const mainUrl = 'https://rebahinxxi.wiki/'
@@ -41,15 +41,15 @@ app.get('/api/movies', async (req, res) => {
   try {
     const browser = await getBrowser()
     const page = await browser.newPage()
-    await page.setRequestInterception(true);
-    page.on('request', request => {
-      const url = request.url();
-      if (['image', 'stylesheet', 'font', 'script'].some(resource => url.endsWith(resource))) {
-        request.abort(); // Abaikan permintaan ini
+    await page.setRequestInterception(true)
+    page.on('request', (request) => {
+      const url = request.url()
+      if (['image', 'stylesheet', 'font', 'script'].some((resource) => url.endsWith(resource))) {
+        request.abort() // Abaikan permintaan ini
       } else {
-        request.continue();
+        request.continue()
       }
-    });
+    })
     await page.goto(url, { waitUntil: 'networkidle2' })
 
     const latest = await page.evaluate(() => {
@@ -283,18 +283,18 @@ app.post('/api/search-movies', async (req, res) => {
   const theLast = req.body.last
   const theFirst = req.body.first
   const page = req.body.page
-  
+
   let url = `${mainUrl}/?s=${movie.replaceAll(' ', '+')}`
 
-  if(theLast) {
+  if (theLast) {
     url = theLast
   }
 
-  if(theFirst) {
+  if (theFirst) {
     url = theFirst
   }
 
-  if(page) {
+  if (page) {
     url = `${mainUrl}/page/${page}/?s=${movie.replaceAll(' ', '+')}`
   }
 
@@ -307,8 +307,12 @@ app.post('/api/search-movies', async (req, res) => {
     const page = await browser.newPage()
     await page.goto(url, { waitUntil: 'networkidle2' })
 
-    const data = await page.evaluate(() => {  
+    const data = await page.evaluate(() => {
       const moviesContainer = document.querySelectorAll('#featured .ml-item')
+      if (document.querySelector('#featured h3')?.textContent) {
+        return { movies: [], pagination: {} }
+      }
+
       const movies = Array.from(moviesContainer).map((movie) => {
         const imgSrc = movie.querySelector('img').src
         const aTag = movie.querySelector('a[data-url]')
@@ -327,37 +331,37 @@ app.post('/api/search-movies', async (req, res) => {
           status: ''
         }
         const isEpisode = movie.querySelector('.mli-eps')
-        if(isEpisode) {
+        if (isEpisode) {
           const epsText = isEpisode.querySelector('span').textContent
           const eps = epsText.split(' ')[0]
           const st = epsText.split(' ')[1]
           episode = {
             isEpisode: true,
             episode: eps,
-            status: st == 'ON' ? 'On Going' : 'Completed' 
+            status: st == 'ON' ? 'On Going' : 'Completed'
           }
         }
         return { imgSrc, href, quality, rating, duration, title, episode }
       })
 
       const paginationContainer = document.querySelectorAll('#pagination ul.pagination li')
-      let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent);
-      let count = 1;
-      let isNext = false;
-      let isPrev = false;
+      let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent)
+      let count = 1
+      let isNext = false
+      let isPrev = false
       let first = {
         status: false,
         href: null
-      };
+      }
       let last = {
         status: false,
         href: null
-      };
-      let startPage = 0;
+      }
+      let startPage = 0
       let startIndex = 0
       paginationContainer.forEach((el, i) => {
         const firstContent = el.querySelector('a')
-        if(firstContent.textContent.includes('First')) {
+        if (firstContent.textContent.includes('First')) {
           startIndex++
           first = {
             status: true,
@@ -365,38 +369,44 @@ app.post('/api/search-movies', async (req, res) => {
           }
         }
         const prev = el.querySelector('a').textContent.includes('Prev')
-        if(prev) {
+        if (prev) {
           startIndex++
           isPrev = true
         }
 
-        if(i === startIndex) {
-          if(currnetPage === 1) {
-            startPage = 1;
+        if (i === startIndex) {
+          if (currnetPage === 1) {
+            startPage = 1
           } else {
-            startPage = parseInt(el.querySelector('a').textContent);
+            startPage = parseInt(el.querySelector('a').textContent)
           }
-        } 
+        }
 
         const aTag = el.querySelector('a.page')
-        if(aTag) {
+        if (aTag) {
           count++
-        } 
+        }
         const next = el.querySelector('a').textContent.includes('Next')
-        if(next) {
+        if (next) {
           isNext = true
         }
         const lastContent = el.querySelector('a')
-        if(lastContent.textContent.includes('Last')) {
+        if (lastContent.textContent.includes('Last')) {
           last = {
             status: true,
             href: lastContent.href
           }
-        } 
-      });
+        }
+      })
 
       const pagination = {
-        currnetPage, startPage, count, isNext, isPrev, first, last
+        currnetPage,
+        startPage,
+        count,
+        isNext,
+        isPrev,
+        first,
+        last
       }
 
       return { pagination, movies }
@@ -414,18 +424,18 @@ app.post('/api/list-movies', async (req, res) => {
   const theLast = req.body.last
   const theFirst = req.body.first
   const page = req.body.page
-  
+
   let url = `${mainUrl}/movies`
 
-  if(theLast) {
+  if (theLast) {
     url = theLast
   }
 
-  if(theFirst) {
+  if (theFirst) {
     url = theFirst
   }
 
-  if(page) {
+  if (page) {
     url = `${mainUrl}/movies/page/${page}`
   }
 
@@ -438,7 +448,7 @@ app.post('/api/list-movies', async (req, res) => {
     const page = await browser.newPage()
     await page.goto(url, { waitUntil: 'networkidle2' })
 
-    const data = await page.evaluate(() => {  
+    const data = await page.evaluate(() => {
       const moviesContainer = document.querySelectorAll('#featured .ml-item')
       const movies = Array.from(moviesContainer).map((movie) => {
         const imgSrc = movie.querySelector('img').src
@@ -458,37 +468,37 @@ app.post('/api/list-movies', async (req, res) => {
           status: ''
         }
         const isEpisode = movie.querySelector('.mli-eps')
-        if(isEpisode) {
+        if (isEpisode) {
           const epsText = isEpisode.querySelector('span').textContent
           const eps = epsText.split(' ')[0]
           const st = epsText.split(' ')[1]
           episode = {
             isEpisode: true,
             episode: eps,
-            status: st == 'ON' ? 'On Going' : 'Completed' 
+            status: st == 'ON' ? 'On Going' : 'Completed'
           }
         }
         return { imgSrc, href, quality, rating, duration, title, episode }
       })
 
       const paginationContainer = document.querySelectorAll('#pagination ul.pagination li')
-      let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent);
-      let count = 1;
-      let isNext = false;
-      let isPrev = false;
+      let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent)
+      let count = 1
+      let isNext = false
+      let isPrev = false
       let first = {
         status: false,
         href: null
-      };
+      }
       let last = {
         status: false,
         href: null
-      };
-      let startPage = 0;
+      }
+      let startPage = 0
       let startIndex = 0
       paginationContainer.forEach((el, i) => {
         const firstContent = el.querySelector('a')
-        if(firstContent.textContent.includes('First')) {
+        if (firstContent.textContent.includes('First')) {
           startIndex++
           first = {
             status: true,
@@ -496,38 +506,44 @@ app.post('/api/list-movies', async (req, res) => {
           }
         }
         const prev = el.querySelector('a').textContent.includes('Prev')
-        if(prev) {
+        if (prev) {
           startIndex++
           isPrev = true
         }
 
-        if(i === startIndex) {
-          if(currnetPage === 1) {
-            startPage = 1;
+        if (i === startIndex) {
+          if (currnetPage === 1) {
+            startPage = 1
           } else {
-            startPage = parseInt(el.querySelector('a').textContent);
+            startPage = parseInt(el.querySelector('a').textContent)
           }
-        } 
+        }
 
         const aTag = el.querySelector('a.page')
-        if(aTag) {
+        if (aTag) {
           count++
-        } 
+        }
         const next = el.querySelector('a').textContent.includes('Next')
-        if(next) {
+        if (next) {
           isNext = true
         }
         const lastContent = el.querySelector('a')
-        if(lastContent.textContent.includes('Last')) {
+        if (lastContent.textContent.includes('Last')) {
           last = {
             status: true,
             href: lastContent.href
           }
-        } 
-      });
+        }
+      })
 
       const pagination = {
-        currnetPage, startPage, count, isNext, isPrev, first, last
+        currnetPage,
+        startPage,
+        count,
+        isNext,
+        isPrev,
+        first,
+        last
       }
 
       return { pagination, movies }
