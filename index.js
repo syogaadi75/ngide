@@ -410,6 +410,137 @@ app.post('/api/search-movies', async (req, res) => {
   }
 })
 
+app.post('/api/list-movies', async (req, res) => {
+  const theLast = req.body.last
+  const theFirst = req.body.first
+  const page = req.body.page
+  
+  let url = `${mainUrl}/movies`
+
+  if(theLast) {
+    url = theLast
+  }
+
+  if(theFirst) {
+    url = theFirst
+  }
+
+  if(page) {
+    url = `${mainUrl}/movies/page/${page}`
+  }
+
+  if (!url) {
+    return res.status(400).send('URL is required')
+  }
+
+  try {
+    const browser = await getBrowser()
+    const page = await browser.newPage()
+    await page.goto(url, { waitUntil: 'networkidle2' })
+
+    const data = await page.evaluate(() => {  
+      const moviesContainer = document.querySelectorAll('#featured .ml-item')
+      const movies = Array.from(moviesContainer).map((movie) => {
+        const imgSrc = movie.querySelector('img').src
+        const aTag = movie.querySelector('a[data-url]')
+        const href = aTag ? aTag.href : null
+        const qualitySpan = movie.querySelector('span.mli-quality')
+        const quality = qualitySpan ? qualitySpan.innerText : null
+        const ratingSpan = movie.querySelector('span.mli-rating')
+        const rating = ratingSpan ? ratingSpan.textContent.trim().replace(/^\D+/g, '') : null
+        const durationSpan = movie.querySelector('span.mli-durasi')
+        const duration = durationSpan ? durationSpan.textContent.trim().replace(/^\D+/g, '') : null
+        const titleH2 = movie.querySelector('span.mli-info h2')
+        const title = titleH2 ? titleH2.textContent.trim() : null
+        let episode = {
+          isEpisode: false,
+          episode: 0,
+          status: ''
+        }
+        const isEpisode = movie.querySelector('.mli-eps')
+        if(isEpisode) {
+          const epsText = isEpisode.querySelector('span').textContent
+          const eps = epsText.split(' ')[0]
+          const st = epsText.split(' ')[1]
+          episode = {
+            isEpisode: true,
+            episode: eps,
+            status: st == 'ON' ? 'On Going' : 'Completed' 
+          }
+        }
+        return { imgSrc, href, quality, rating, duration, title, episode }
+      })
+
+      const paginationContainer = document.querySelectorAll('#pagination ul.pagination li')
+      let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent);
+      let count = 1;
+      let isNext = false;
+      let isPrev = false;
+      let first = {
+        status: false,
+        href: null
+      };
+      let last = {
+        status: false,
+        href: null
+      };
+      let startPage = 0;
+      let startIndex = 0
+      paginationContainer.forEach((el, i) => {
+        const firstContent = el.querySelector('a')
+        if(firstContent.textContent.includes('First')) {
+          startIndex++
+          first = {
+            status: true,
+            href: firstContent.href
+          }
+        }
+        const prev = el.querySelector('a').textContent.includes('Prev')
+        if(prev) {
+          startIndex++
+          isPrev = true
+        }
+
+        if(i === startIndex) {
+          if(currnetPage === 1) {
+            startPage = 1;
+          } else {
+            startPage = parseInt(el.querySelector('a').textContent);
+          }
+        } 
+
+        const aTag = el.querySelector('a.page')
+        if(aTag) {
+          count++
+        } 
+        const next = el.querySelector('a').textContent.includes('Next')
+        if(next) {
+          isNext = true
+        }
+        const lastContent = el.querySelector('a')
+        if(lastContent.textContent.includes('Last')) {
+          last = {
+            status: true,
+            href: lastContent.href
+          }
+        } 
+      });
+
+      const pagination = {
+        currnetPage, startPage, count, isNext, isPrev, first, last
+      }
+
+      return { pagination, movies }
+    })
+
+    await browser.close()
+    res.json(data)
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Something went wrong')
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`)
 })
