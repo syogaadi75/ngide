@@ -370,15 +370,16 @@ app.post('/api/search-movies', async (req, res) => {
           isPrev = true
         }
 
+        if(i === startIndex) {
+          if(currnetPage === 1) {
+            startPage = 1;
+          } else {
+            startPage = parseInt(el.querySelector('a').textContent);
+          }
+        } 
+
         const aTag = el.querySelector('a.page')
         if(aTag) {
-          if(i === startIndex) {
-            if(currnetPage === 1) {
-              startPage = 1;
-            } else {
-              startPage = parseInt(aTag.textContent);
-            }
-          } 
           count++
         } 
         const next = el.querySelector('a').textContent.includes('Next')
