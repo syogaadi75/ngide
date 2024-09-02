@@ -344,6 +344,9 @@ app.post('/api/search-movies', async (req, res) => {
         return { imgSrc, href, quality, rating, duration, title, episode }
       })
 
+      if (!document.querySelector('#pagination ul.pagination')) {
+        return { movies, pagination: {} }
+      }
       const paginationContainer = document.querySelectorAll('#pagination ul.pagination li')
       let currnetPage = parseInt(document.querySelector('#pagination li.active a').textContent)
       let count = 1
