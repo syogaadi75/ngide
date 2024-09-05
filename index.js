@@ -267,7 +267,20 @@ app.get('/api/watch-movie', async (req, res) => {
         }
       })
 
-      return { title, mainServer: videoSrc, servers, rating, sinopsis, actors, directors }
+      const epsContainer = document.querySelectorAll('#list-eps a')
+      const eps = {
+        isEps: false
+      }
+      if(epsContainer) {
+        eps.isEps = true
+        const eps = Array.from(epsContainer).map((ep) => {
+          const src =  ep.getAttribute('data-iframe')
+          const number = ep.textContent.trim()
+          return { src, number }
+        })
+      }
+
+      return { title, mainServer: videoSrc, servers, rating, sinopsis, actors, directors, eps }
     })
 
     await browser.close()
