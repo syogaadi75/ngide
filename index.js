@@ -268,12 +268,12 @@ app.get('/api/watch-movie', async (req, res) => {
       })
 
       const epsContainer = document.querySelectorAll('#list-eps a')
-      const eps = {
+      let eps = {
         isEps: false
       }
       if(epsContainer) {
         eps.isEps = true
-        const eps = Array.from(epsContainer).map((ep) => {
+        eps.data = Array.from(epsContainer).map((ep) => {
           const src =  ep.getAttribute('data-iframe')
           const number = ep.textContent.trim()
           return { src, number }
