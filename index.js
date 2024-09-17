@@ -4,13 +4,25 @@ const puppeteer = require('puppeteer-core')
 const path = require('path')
 const cors = require('cors')
 const bodyParser = require('body-parser')
+const axios = require('axios')
+const cheerio = require('cheerio')
 
 const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 const PORT = process.env.PORT || 4000
-const mainUrl = 'https://rebahinxxi.wiki/'
+const mainUrl = 'https://rebahinxxi.blog'
+
+function getOptions(url) {
+  return {
+    url: url,
+    withCredentials: true,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+    }
+  }
+}
 
 app.use(cors())
 
@@ -30,6 +42,50 @@ async function getBrowser() {
 app.get('/', (req, res) => {
   res.send('Hello World')
 })
+
+app.get('/api/movies2', async (req, res) => {
+  try {
+    // Fetch HTML data using axios
+    const base = await axios.request(getOptions(mainUrl));
+    
+    // Load the HTML using cheerio
+    const $ = cheerio.load(base.data);
+
+    // Scrape the 'latest' movies data
+    const latest = $('.movies-list-wrap.mlw-latestmovie .tab-content .movies-list-full .ml-item').map((index, element) => {
+      const imgSrc = $(element).find('img').attr('src');
+      const href = $(element).find('a[data-url]').attr('href');
+      const quality = $(element).find('span.mli-quality').text();
+      const rating = $(element).find('span.mli-rating').text().trim().replace(/^\D+/g, '');
+      const duration = $(element).find('span.mli-durasi').text().trim().replace(/^\D+/g, '');
+      const title = $(element).find('span.mli-info h2').text().trim();
+      return { imgSrc, href, quality, rating, duration, title };
+    }).get(); // `.get()` is used to convert cheerio object to array
+
+    // Scrape the 'top view' movies data
+    const topView = $('.movies-list-wrap.mlw-topview .tab-content .movies-list-full .ml-item').map((index, element) => {
+      const imgSrc = $(element).find('img').attr('src');
+      const href = $(element).find('a[data-url]').attr('href');
+      const quality = $(element).find('span.mli-quality').text();
+      const rating = $(element).find('span.mli-rating').text().trim().replace(/^\D+/g, '');
+      const duration = $(element).find('span.mli-durasi').text().trim().replace(/^\D+/g, '');
+      const title = $(element).find('span.mli-info h2').text().trim();
+      return { imgSrc, href, quality, rating, duration, title };
+    }).get();
+
+    // Construct the data object to send as response
+    const data = {
+      latest,
+      topView
+    };
+
+    // Send the scraped data as JSON response
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
+});
 
 app.get('/api/movies', async (req, res) => {
   const url = mainUrl
