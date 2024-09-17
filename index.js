@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
   res.send('Hello World')
 })
 
-app.get('/api/movies2', async (req, res) => {
+app.get('/api/v2/movies', async (req, res) => {
   try {
     // Fetch HTML data using axios
     const base = await axios.request(getOptions(mainUrl));
@@ -86,6 +86,443 @@ app.get('/api/movies2', async (req, res) => {
     res.status(500).send('Something went wrong');
   }
 });
+app.get('/api/v2/detail-movie', async (req, res) => {
+  const url = req.query.url;
+
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    // Fetch the page HTML using axios
+    const response = await axios.request(getOptions(url));
+
+    // Load the HTML into cheerio
+    const $ = cheerio.load(response.data);
+
+    // Extract the title
+    const title = $('h3[itemprop="name"]').attr('content');
+
+    // Extract the image source from background-image style
+    const imgSrc = $('.thumb.mvic-thumb').css('background-image').slice(5, -2);
+
+    // Extract the trailer URL
+    const trailer = $('#iframe-trailer').attr('src');
+
+    // Extract the rating
+    const rating = {
+      count: $('span[itemprop="ratingCount"]').attr('content'),
+      value: $('span[itemprop="ratingValue"]').attr('content')
+    };
+
+    // Extract the synopsis
+    const sinopsis = $('span[itemprop="reviewBody"] p').first().text().trim();
+
+    // Extract right info (duration, qualities, release date, countries)
+    let duration, qualities = [], release_date, countries = [];
+    $('.mvic-desc .mvic-info .mvici-right p').each((i, el) => {
+      if (i === 0) {
+        duration = $(el).text().replace('Duration:', '').trim();
+      } else if (i === 1) {
+        $(el).find('span.quality a').each((index, q) => {
+          qualities.push({
+            name: $(q).text().trim(),
+            href: $(q).attr('href')
+          });
+        });
+      } else if (i === 2) {
+        release_date = $(el).text().replace('Release Date:', '').trim();
+      } else if (i === 3) {
+        $(el).find('a').each((index, c) => {
+          countries.push({
+            name: $(c).text().trim(),
+            href: $(c).attr('href')
+          });
+        });
+      }
+    });
+
+    // Extract left info (genres, actors, directors)
+    let genres = [], actors = [], directors = [];
+    $('.mvic-desc .mvic-info .mvici-left p').each((i, el) => {
+      if (i === 0) {
+        $(el).find('a').each((index, g) => {
+          genres.push({
+            name: $(g).find('span[itemprop="genre"]').text().trim(),
+            href: $(g).attr('href')
+          });
+        });
+      } else if (i === 1) {
+        $(el).find('span[itemprop="actor"] a').each((index, a) => {
+          actors.push({
+            name: $(a).find('span[itemprop="name"]').text().trim(),
+            href: $(a).attr('href')
+          });
+        });
+      } else if (i === 2) {
+        $(el).find('span[itemprop="director"] a').each((index, d) => {
+          directors.push({
+            name: $(d).find('span[itemprop="name"]').text().trim(),
+            href: $(d).attr('href')
+          });
+        });
+      }
+    });
+
+    // Extract additional link (e.g. for the movie)
+    const href = $('#mv-info a[title]').attr('href');
+
+    // Construct the data object
+    const data = {
+      title,
+      imgSrc,
+      trailer,
+      href,
+      rating,
+      sinopsis,
+      duration,
+      qualities,
+      release_date,
+      countries,
+      genres,
+      actors,
+      directors
+    };
+
+    // Send the data as a JSON response
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
+});
+app.get('/api/v2/watch-movie', async (req, res) => {
+  const url = req.query.url;
+
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    // Fetch the page HTML using axios
+    const response = await axios.request(getOptions(url));
+
+    // Load the HTML into cheerio
+    const $ = cheerio.load(response.data);
+
+    // Extract the video source
+    const videoSrc = $('#iframe-embed').attr('src');
+
+    // Extract the title
+    const title = $('.mvic-info .mvic-tagline2 h3').text().trim();
+
+    // Extract the servers
+    const servers = $('#server-list .server-wrapper').map((index, server) => {
+      const iframeSrc = $(server).find('.server').attr('data-iframe');
+      const description = $(server).find('.server-title small').text().trim();
+      return { description, src: iframeSrc };
+    }).get();
+
+    // Extract the rating
+    const rating = {
+      count: $('label#movie-rating').text().replace('Rating', '').replace('(', '').replace(')', '').trim(),
+      value: $('#movie-mark').text().trim()
+    };
+
+    // Extract the sinopsis
+    const sinopsis = $('.desc-des-pendek[itemprop="description"] p').first().text().trim();
+
+    // Extract the actors
+    const actors = $('span[itemprop="actor"] a').map((index, actor) => {
+      return {
+        name: $(actor).find('span[itemprop="name"]').text().trim(),
+        href: $(actor).attr('href')
+      };
+    }).get();
+
+    // Extract the directors
+    const directors = $('span[itemprop="director"] a').map((index, director) => {
+      return {
+        name: $(director).find('span[itemprop="name"]').text().trim(),
+        href: $(director).attr('href')
+      };
+    }).get();
+
+    // Extract the episodes
+    let eps = { isEps: false };
+    const epsContainer = $('#list-eps a');
+    if (epsContainer.length > 0) {
+      eps.isEps = true;
+      eps.data = epsContainer.map((index, ep) => {
+        const src = $(ep).attr('data-iframe');
+        const number = $(ep).text().trim();
+        return { src, number };
+      }).get();
+    }
+
+    // Construct the data object
+    const data = {
+      title,
+      mainServer: videoSrc,
+      servers,
+      rating,
+      sinopsis,
+      actors,
+      directors,
+      eps
+    };
+
+    // Send the data as a JSON response
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
+});
+app.post('/api/v2/search-movies', async (req, res) => {
+  const movie = req.body.movie;
+  const theLast = req.body.last;
+  const theFirst = req.body.first;
+  const page = req.body.page;
+
+  let url = `${mainUrl}/?s=${movie.replaceAll(' ', '+')}`;
+
+  if (theLast) {
+    url = theLast;
+  }
+
+  if (theFirst) {
+    url = theFirst;
+  }
+
+  if (page) {
+    url = `${mainUrl}/page/${page}/?s=${movie.replaceAll(' ', '+')}`;
+  }
+
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    // Fetch the page HTML using axios
+    const response = await axios.request(getOptions(url));
+
+    // Load the HTML into cheerio
+    const $ = cheerio.load(response.data);
+
+    // Extract the movies
+    const movies = $('#featured .ml-item').map((i, movie) => {
+      const imgSrc = $(movie).find('img').attr('src');
+      const href = $(movie).find('a[data-url]').attr('href');
+      const quality = $(movie).find('span.mli-quality').text().trim();
+      const rating = $(movie).find('span.mli-rating').text().trim().replace(/^\D+/g, '');
+      const duration = $(movie).find('span.mli-durasi').text().trim().replace(/^\D+/g, '');
+      const title = $(movie).find('span.mli-info h2').text().trim();
+      
+      let episode = {
+        isEpisode: false,
+        episode: 0,
+        status: ''
+      };
+      
+      const isEpisode = $(movie).find('.mli-eps');
+      if (isEpisode.length > 0) {
+        const epsText = isEpisode.find('span').text();
+        const eps = epsText.split(' ')[0];
+        const st = epsText.split(' ')[1];
+        episode = {
+          isEpisode: true,
+          episode: eps,
+          status: st === 'ON' ? 'On Going' : 'Completed'
+        };
+      }
+
+      return { imgSrc, href, quality, rating, duration, title, episode };
+    }).get();
+
+    // Extract the pagination
+    let pagination = {};
+    const paginationContainer = $('#pagination ul.pagination li');
+    
+    if (paginationContainer.length > 0) {
+      const currentPage = parseInt($('#pagination li.active a').text().trim());
+      let count = 1;
+      let isNext = false;
+      let isPrev = false;
+      let first = { status: false, href: null };
+      let last = { status: false, href: null };
+      let startPage = 0;
+      let startIndex = 0;
+
+      paginationContainer.each((i, el) => {
+        const firstContent = $(el).find('a').text();
+        if (firstContent.includes('First')) {
+          startIndex++;
+          first = { status: true, href: $(el).find('a').attr('href') };
+        }
+
+        if ($(el).find('a').text().includes('Prev')) {
+          startIndex++;
+          isPrev = true;
+        }
+
+        if (i === startIndex) {
+          startPage = currentPage === 1 ? 1 : parseInt($(el).find('a').text());
+        }
+
+        if ($(el).find('a.page').length) {
+          count++;
+        }
+
+        if ($(el).find('a').text().includes('Next')) {
+          isNext = true;
+        }
+
+        if (firstContent.includes('Last')) {
+          last = { status: true, href: $(el).find('a').attr('href') };
+        }
+      });
+
+      pagination = {
+        currentPage,
+        startPage,
+        count,
+        isNext,
+        isPrev,
+        first,
+        last
+      };
+    }
+
+    // Return movies and pagination
+    res.json({ pagination, movies });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
+});
+app.post('/api/v2/list-movies', async (req, res) => {
+  const theLast = req.body.last;
+  const theFirst = req.body.first;
+  const page = req.body.page;
+
+  let url = `${mainUrl}/movies`;
+
+  if (theLast) {
+    url = theLast;
+  }
+
+  if (theFirst) {
+    url = theFirst;
+  }
+
+  if (page) {
+    url = `${mainUrl}/movies/page/${page}`;
+  }
+
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    // Fetch the page HTML using axios
+    const response = await axios.request(getOptions(url));
+
+    // Load the HTML into cheerio
+    const $ = cheerio.load(response.data);
+
+    // Extract the movies
+    const movies = $('#featured .ml-item').map((i, movie) => {
+      const imgSrc = $(movie).find('img').attr('src');
+      const href = $(movie).find('a[data-url]').attr('href');
+      const quality = $(movie).find('span.mli-quality').text().trim();
+      const rating = $(movie).find('span.mli-rating').text().trim().replace(/^\D+/g, '');
+      const duration = $(movie).find('span.mli-durasi').text().trim().replace(/^\D+/g, '');
+      const title = $(movie).find('span.mli-info h2').text().trim();
+      
+      let episode = {
+        isEpisode: false,
+        episode: 0,
+        status: ''
+      };
+      
+      const isEpisode = $(movie).find('.mli-eps');
+      if (isEpisode.length > 0) {
+        const epsText = isEpisode.find('span').text();
+        const eps = epsText.split(' ')[0];
+        const st = epsText.split(' ')[1];
+        episode = {
+          isEpisode: true,
+          episode: eps,
+          status: st === 'ON' ? 'On Going' : 'Completed'
+        };
+      }
+
+      return { imgSrc, href, quality, rating, duration, title, episode };
+    }).get();
+
+    // Extract the pagination
+    let pagination = {};
+    const paginationContainer = $('#pagination ul.pagination li');
+    
+    if (paginationContainer.length > 0) {
+      const currentPage = parseInt($('#pagination li.active a').text().trim());
+      let count = 1;
+      let isNext = false;
+      let isPrev = false;
+      let first = { status: false, href: null };
+      let last = { status: false, href: null };
+      let startPage = 0;
+      let startIndex = 0;
+
+      paginationContainer.each((i, el) => {
+        const firstContent = $(el).find('a').text();
+        if (firstContent.includes('First')) {
+          startIndex++;
+          first = { status: true, href: $(el).find('a').attr('href') };
+        }
+
+        if ($(el).find('a').text().includes('Prev')) {
+          startIndex++;
+          isPrev = true;
+        }
+
+        if (i === startIndex) {
+          startPage = currentPage === 1 ? 1 : parseInt($(el).find('a').text());
+        }
+
+        if ($(el).find('a.page').length) {
+          count++;
+        }
+
+        if ($(el).find('a').text().includes('Next')) {
+          isNext = true;
+        }
+
+        if ($(el).find('a').text().includes('Last')) {
+          last = { status: true, href: $(el).find('a').attr('href') };
+        }
+      });
+
+      pagination = {
+        currentPage,
+        startPage,
+        count,
+        isNext,
+        isPrev,
+        first,
+        last
+      };
+    }
+
+    // Return movies and pagination
+    res.json({ pagination, movies });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
+});
+
 
 app.get('/api/movies', async (req, res) => {
   const url = mainUrl
