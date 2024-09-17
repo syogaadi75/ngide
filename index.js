@@ -104,7 +104,7 @@ app.get('/api/v2/detail-movie', async (req, res) => {
     const title = $('h3[itemprop="name"]').attr('content');
 
     // Extract the image source from background-image style
-    const imgSrc = $('.thumb.mvic-thumb').css('background-image').slice(5, -2);
+    const imgSrc = $('.thumb.mvic-thumb').css('background-image').slice(4, -1);
 
     // Extract the trailer URL
     const trailer = $('#iframe-trailer').attr('src');
@@ -211,7 +211,9 @@ app.get('/api/v2/watch-movie', async (req, res) => {
     const $ = cheerio.load(response.data);
 
     // Extract the video source
+
     const videoSrc = $('#iframe-embed').attr('src');
+    console.log($('#colimedia').html(), 'df')
 
     // Extract the title
     const title = $('.mvic-info .mvic-tagline2 h3').text().trim();
@@ -764,7 +766,7 @@ app.get('/api/watch-movie', async (req, res) => {
       let eps = {
         isEps: false
       }
-      if(epsContainer) {
+      if(epsContainer.length > 0) {
         eps.isEps = true
         eps.data = Array.from(epsContainer).map((ep) => {
           const src =  ep.getAttribute('data-iframe')
