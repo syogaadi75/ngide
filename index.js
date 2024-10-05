@@ -539,7 +539,7 @@ app.get('/api/movies', async (req, res) => {
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      if (['stylesheet', 'font', 'script'].includes(resourceType)) {
+      if (['image', 'stylesheet', 'font'].includes(resourceType)) {
         request.abort();
       } else {
         request.continue();
