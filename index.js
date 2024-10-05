@@ -714,6 +714,15 @@ app.get('/api/watch-movie', async (req, res) => {
   try {
     const browser = await getBrowser()
     const page = await browser.newPage()
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (['image', 'stylesheet', 'font'].includes(resourceType)) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
     await page.goto(url, { waitUntil: 'networkidle2' })
 
     const data = await page.evaluate(() => {
