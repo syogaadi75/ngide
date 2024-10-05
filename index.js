@@ -12,7 +12,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 const PORT = process.env.PORT || 4000
-const mainUrl = 'https://rebahinxxi.mom'
+const mainUrl = 'https://rebahinxxi.website'
 
 function getOptions(url) {
   return {
