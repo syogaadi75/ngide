@@ -536,15 +536,15 @@ app.get('/api/movies', async (req, res) => {
   try {
     const browser = await getBrowser()
     const page = await browser.newPage()
-    await page.setRequestInterception(true)
+    await page.setRequestInterception(true);
     page.on('request', (request) => {
-      const url = request.url()
-      if (['image', 'stylesheet', 'font', 'script'].some((resource) => url.endsWith(resource))) {
-        request.abort() // Abaikan permintaan ini
+      const resourceType = request.resourceType();
+      if (['image', 'stylesheet', 'font', 'script'].includes(resourceType)) {
+        request.abort();
       } else {
-        request.continue()
+        request.continue();
       }
-    })
+    });
     await page.goto(url, { waitUntil: 'networkidle2' })
 
     const latest = await page.evaluate(() => {
