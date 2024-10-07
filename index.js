@@ -41,7 +41,7 @@ async function getBrowser() {
 
 app.get('/', (req, res) => {
   res.send('Hello World')
-})
+}) 
 
 app.get('/api/v2/movies', async (req, res) => {
   try {
@@ -525,6 +525,53 @@ app.post('/api/v2/list-movies', async (req, res) => {
   }
 });
 
+
+app.get('/api/anime', async (req, res) => {
+  const url = 'https://s1.nontonanimeid.boats'
+
+  if (!url) {
+    return res.status(400).send('URL is required')
+  }
+
+  try {
+    const browser = await getBrowser()
+    const page = await browser.newPage()
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (['image', 'stylesheet', 'font'].includes(resourceType)) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+    await page.goto(url, { waitUntil: 'networkidle2' })
+
+    const animes = await page.evaluate(() => {
+      const data = []
+      document.querySelectorAll('#postbaru .misha_posts_wrap article').forEach((el) => {
+        let slug = el.querySelector('a').getAttribute('href');
+        data.push({
+          slug,
+          title: el.querySelector('h3.title').textContent.trim(),
+          episode: el.querySelector('.types.episodes').textContent.trim(),
+          cover: el.querySelector('img').getAttribute('src')
+        });
+      });
+      return data
+    }) 
+
+    const data = {
+      animes
+    }
+
+    await browser.close()
+    res.json(data)
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Something went wrong')
+  }
+})
 
 app.get('/api/movies', async (req, res) => {
   const url = mainUrl
